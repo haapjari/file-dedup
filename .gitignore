@@ -1,0 +1,41 @@
+# Binaries
+file-dedup
+*.test
+*.exe
+dist/
+
+# Test coverage
+coverage.out
+coverage.html
+
+# Tools (installed via make tools)
+.tools/
+.golangci-cache/
+.gocache/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Runtime metadata
+.file-dedup/
+
+# Local development config and notes
+.devcontainer/
+AGENTS.md
+CLAUDE.md
+TODO.md
+PLAN.md
+.ralph/
+
+# Generated docs and local notices
+docs/
+THIRD_PARTY_NOTICES.md
+
+tmp/
