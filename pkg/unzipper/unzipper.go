@@ -337,9 +337,15 @@ func (u *Unzipper) extractBatch(
 			continue
 		}
 
-		res.ExtractedArchives++
 		res.ExtractedFiles += op.ExtractedFiles
 		res.ExtractedDirs += op.ExtractedDirs
+		if op.SkippedEntries > 0 {
+			res.ErrorCount++
+			res.Operations = append(res.Operations, op)
+			continue
+		}
+
+		res.ExtractedArchives++
 
 		if !u.dryRun {
 			op.DeletedArchive = true
@@ -386,7 +392,7 @@ func (u *Unzipper) processArchive(archive collector.FileInfo, archivePath string
 		return op, err
 	}
 
-	if !u.dryRun {
+	if !u.dryRun && op.ExtractionComplete {
 		trashedTo, rmErr := u.removeArchive(archivePath)
 		if rmErr != nil {
 			op.Error = rmErr
@@ -608,10 +614,15 @@ func unzipWithValidator(
 	}
 
 	for _, entry := range r.files {
-		if entryErr := extractArchiveEntry(file, entry, validator, trasher, &op); entryErr != nil {
+		entryErr := extractArchiveEntry(file, entry, validator, trasher, &op)
+		if entryErr != nil {
 			op.Error = entryErr
 			return op, op.Error
 		}
+	}
+
+	if op.SkippedEntries > 0 {
+		return op, nil
 	}
 
 	op.ExtractionComplete = true
@@ -627,8 +638,9 @@ func unzipWithValidator(
 // formats increment op.NestedArchives for later recursive processing.
 //
 // All resolved paths are validated through the provided [safepath.Validator] to
-// prevent path traversal and symlink escape attacks. Returns an error on the
-// first failure; the caller receives partial statistics in op.
+// prevent path traversal and symlink escape attacks. Entry-open failures are
+// recorded as skipped entries so one malformed file does not abort the full run;
+// safety and filesystem mutation failures remain fatal.
 func extractArchiveEntry(
 	file collector.FileInfo,
 	entry *zip.File,
@@ -656,6 +668,15 @@ func extractArchiveEntry(
 		return nil
 	}
 
+	rc, openErr := entry.Open()
+	if openErr != nil {
+		recordSkippedEntry(op, entry, fmt.Errorf("failed to open entry: %w", openErr))
+		return nil
+	}
+	defer func() {
+		_ = rc.Close()
+	}()
+
 	// For regular files, ensure the parent directory exists before writing.
 	parentDir := filepath.Dir(targetPath)
 	if mkErr := os.MkdirAll(parentDir, 0o755); mkErr != nil {
@@ -674,7 +695,7 @@ func extractArchiveEntry(
 	}
 
 	// Decompress and write the archive entry contents to the target path.
-	if writeErr := extractFile(entry, targetPath); writeErr != nil {
+	if writeErr := extractOpenFile(entry, rc, targetPath, maxDecompressedSize); writeErr != nil {
 		return fmt.Errorf("failed to extract %s: %w", entry.Name, writeErr)
 	}
 	op.ExtractedFiles++
@@ -686,6 +707,19 @@ func extractArchiveEntry(
 	}
 
 	return nil
+}
+
+func recordSkippedEntry(op *ExtractOperation, entry *zip.File, err error) {
+	op.SkippedEntries++
+	op.EntryErrors = append(op.EntryErrors, fmt.Sprintf(
+		"%s (method=%d %s compressed=%d uncompressed=%d): %v",
+		entry.Name,
+		entry.Method,
+		compressionMethodName(entry.Method),
+		entry.CompressedSize64,
+		entry.UncompressedSize64,
+		err,
+	))
 }
 
 // backupExistingFile moves an existing extraction target to trash before
@@ -791,6 +825,10 @@ func extractFileWithLimit(entry *zip.File, targetPath string, maxSize int64) err
 		_ = rc.Close()
 	}()
 
+	return extractOpenFile(entry, rc, targetPath, maxSize)
+}
+
+func extractOpenFile(entry *zip.File, rc io.Reader, targetPath string, maxSize int64) error {
 	outFile, err := os.OpenFile(targetPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, entry.Mode().Perm())
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)

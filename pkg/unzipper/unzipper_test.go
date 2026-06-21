@@ -661,6 +661,42 @@ func TestExtractArchivesWithProgressRecursively(t *testing.T) {
 		assert.True(t, os.IsNotExist(statErr), "non-.zip entry must not be recursively extracted")
 	})
 
+	t.Run("skips entry open errors and keeps parent archive", func(t *testing.T) {
+		root := t.TempDir()
+		archivePath := filepath.Join(root, "tabs.zip")
+
+		archiveFile, err := os.Create(archivePath)
+		require.NoError(t, err)
+		zw := zip.NewWriter(archiveFile)
+		writeZipEntry(t, zw, "song.gp3", zip.Deflate, []byte("tab content"))
+		writeZipEntry(t, zw, "ok.txt", zip.Deflate, []byte("ok content"))
+		require.NoError(t, zw.Close())
+		require.NoError(t, archiveFile.Close())
+		corruptLocalFileHeaderSignature(t, archivePath, "song.gp3")
+
+		uz, files := setup(t, root, false)
+
+		result, err := uz.ExtractArchivesWithProgressRecursively(files, nil)
+		require.NoError(t, err)
+
+		require.Len(t, result.Operations, 1)
+		op := result.Operations[0]
+		assert.False(t, op.ExtractionComplete)
+		assert.False(t, op.DeletedArchive)
+		assert.Equal(t, 1, op.SkippedEntries)
+		require.Len(t, op.EntryErrors, 1)
+		assert.Contains(t, op.EntryErrors[0], "song.gp3")
+		assert.Contains(t, op.EntryErrors[0], "method=8 deflate")
+		assert.Contains(t, op.EntryErrors[0], "failed to open entry")
+		assert.Equal(t, 1, result.ErrorCount)
+		assert.Equal(t, 0, result.ExtractedArchives)
+		assert.Equal(t, 0, result.DeletedArchives)
+		assert.Equal(t, 1, result.ExtractedFiles)
+		assertFileContent(t, filepath.Join(root, "ok.txt"), "ok content")
+		assert.FileExists(t, archivePath)
+		assert.NoFileExists(t, filepath.Join(root, "song.gp3"))
+	})
+
 	t.Run("progress callback receives calls", func(t *testing.T) {
 		root := t.TempDir()
 
@@ -1803,6 +1839,39 @@ func setAllZipEntryMethods(t *testing.T, archivePath string, method uint16) {
 	}
 
 	require.NoError(t, os.WriteFile(archivePath, data, 0o644))
+}
+
+func corruptLocalFileHeaderSignature(t *testing.T, archivePath, entryName string) {
+	t.Helper()
+
+	const localFileHeaderSignature = 0x04034b50
+
+	data, err := os.ReadFile(archivePath)
+	require.NoError(t, err)
+
+	targetName := filepath.ToSlash(entryName)
+	for offset := 0; offset+30 <= len(data); offset++ {
+		if binary.LittleEndian.Uint32(data[offset:offset+4]) != localFileHeaderSignature {
+			continue
+		}
+
+		nameLen := int(binary.LittleEndian.Uint16(data[offset+26 : offset+28]))
+		extraLen := int(binary.LittleEndian.Uint16(data[offset+28 : offset+30]))
+		nameStart := offset + 30
+		nameEnd := nameStart + nameLen
+		if nameEnd+extraLen > len(data) {
+			continue
+		}
+		if string(data[nameStart:nameEnd]) != targetName {
+			continue
+		}
+
+		binary.LittleEndian.PutUint32(data[offset:offset+4], 0)
+		require.NoError(t, os.WriteFile(archivePath, data, 0o644))
+		return
+	}
+
+	t.Fatalf("local file header not found for %s", entryName)
 }
 
 func createDeflate64Archive(t *testing.T, archivePath, entryName string, payload []byte) {
