@@ -629,6 +629,38 @@ func TestExtractArchivesWithProgressRecursively(t *testing.T) {
 		assert.GreaterOrEqual(t, result.ExtractedArchives, 1)
 	})
 
+	t.Run("leaves zip-readable non-zip entries untouched", func(t *testing.T) {
+		root := t.TempDir()
+
+		gpSourcePath := filepath.Join(root, "source.gp3")
+		createZipFile(t, gpSourcePath)
+		gpData, err := os.ReadFile(gpSourcePath)
+		require.NoError(t, err)
+
+		outerDir := filepath.Join(root, "outer_src")
+		require.NoError(t, os.MkdirAll(outerDir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(outerDir, "song.gp3"), gpData, 0o644))
+
+		outerZipPath := filepath.Join(root, "tabs.zip")
+		createZipArchive(t, outerDir, outerZipPath)
+		require.NoError(t, os.RemoveAll(outerDir))
+		require.NoError(t, os.Remove(gpSourcePath))
+
+		uz, files := setup(t, root, false)
+
+		result, err := uz.ExtractArchivesWithProgressRecursively(files, nil)
+		require.NoError(t, err)
+
+		assert.Equal(t, 1, result.ArchivesFound)
+		assert.Equal(t, 1, result.ArchivesProcessed)
+		assert.Equal(t, 1, result.ExtractedArchives)
+		assert.Equal(t, 0, result.ErrorCount)
+		_, statErr := os.Stat(filepath.Join(root, "song.gp3"))
+		require.NoError(t, statErr, "Guitar Pro file must remain as a normal file")
+		_, statErr = os.Stat(filepath.Join(root, "hello.txt"))
+		assert.True(t, os.IsNotExist(statErr), "non-.zip entry must not be recursively extracted")
+	})
+
 	t.Run("progress callback receives calls", func(t *testing.T) {
 		root := t.TempDir()
 
@@ -1207,6 +1239,8 @@ func TestIsArchive(t *testing.T) {
 
 	fakeZipPath := filepath.Join(root, "fake.zip")
 	require.NoError(t, os.WriteFile(fakeZipPath, []byte("this is not a zip"), 0644))
+	zipReadableGPPath := filepath.Join(root, "valid.gp3")
+	createZipFile(t, zipReadableGPPath)
 
 	emptyPath := filepath.Join(root, "empty.bin")
 	require.NoError(t, os.WriteFile(emptyPath, nil, 0644))
@@ -1219,6 +1253,7 @@ func TestIsArchive(t *testing.T) {
 		{name: "valid zip archive", path: zipPath, want: true},
 		{name: "plain text file", path: txtPath, want: false},
 		{name: "fake zip extension", path: fakeZipPath, want: false},
+		{name: "zip-readable Guitar Pro file", path: zipReadableGPPath, want: false},
 		{name: "empty file", path: emptyPath, want: false},
 		{name: "non-existent file", path: filepath.Join(root, "missing.zip"), want: false},
 	}

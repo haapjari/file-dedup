@@ -873,12 +873,14 @@ func compressionMethodName(method uint16) string {
 	}
 }
 
-// isArchive reports whether filePath is a valid zip archive by attempting to
-// open it with archive/zip. Returns true if the file can be opened as a zip
-// archive, false if it cannot (e.g., not a zip file or corrupted). The error
-// return is reserved for unexpected I/O failures; a file that simply isn't a
-// zip archive is not treated as an error.
+// isArchive reports whether filePath is a .zip file that can be opened as a ZIP
+// archive. Non-.zip files may contain ZIP-like bytes for application-specific
+// formats and must not be treated as extraction candidates.
 func isArchive(filePath string) bool {
+	if !strings.EqualFold(filepath.Ext(filePath), ".zip") {
+		return false
+	}
+
 	r, err := openArchiveReader(filePath)
 	if err != nil {
 		slog.Debug("skipped a file", "path", filePath, "error", err)
