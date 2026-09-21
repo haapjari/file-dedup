@@ -154,6 +154,12 @@ linters:
           - gocyclo
           - maintidx
         path: _test\.go
+      # Tests walk and open paths under t.TempDir(); taint/TOCTOU checks
+      # do not apply there.
+      - linters:
+          - gosec
+        path: _test\.go
+        text: "G122|G703"
     paths:
       - third_party$
       - builtin$
