@@ -3,12 +3,10 @@ module file-dedup
 go 1.26.4
 
 require (
-	github.com/haapjari/flate v0.0.0
+	github.com/haapjari/flate v0.0.0-20260616153155-fe61b72f5e65
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 )
-
-replace github.com/haapjari/flate => ../flate
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
