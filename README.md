@@ -129,6 +129,17 @@ Run the main local gate:
 make pre-commit
 ```
 
+Secret scanning gate ([gitleaks](https://github.com/gitleaks/gitleaks)):
+
+```bash
+go install github.com/zricethezav/gitleaks/v8@latest
+make hooks      # enable .githooks/pre-commit (scans staged changes)
+make secrets    # scan full git history and the working tree
+```
+
+The pre-commit hook fails if `gitleaks` is not installed. CI runs the same
+scans on every push and pull request.
+
 ## AI Assistance Notice
 
 This codebase has been written with AI assistance. Human review, testing, and
@@ -136,4 +147,4 @@ local validation are still required before using it on important data.
 
 ## License
 
-MIT
+[MIT](LICENSE)

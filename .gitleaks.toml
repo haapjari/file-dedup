@@ -1,0 +1,6 @@
+title = "file-dedup gitleaks config"
+
+# Default ruleset only. Add allowlist entries as exact matched strings
+# (regexes/stopwords), never whole paths.
+[extend]
+useDefault = true
