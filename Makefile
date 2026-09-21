@@ -1,4 +1,4 @@
-.PHONY: all build test test-race test-cover test-e2e clean lint fmt vet vulncheck check verify pre-commit tools help release release-build
+.PHONY: all build test test-race test-cover test-e2e clean lint fmt vet vulncheck secrets hooks check verify pre-commit tools help release release-build
 
 # ============================================================================
 # VARIABLES
@@ -58,6 +58,8 @@ help:
 	@echo "  fmt           - Format code"
 	@echo "  vet           - Run go vet"
 	@echo "  vulncheck     - Run govulncheck"
+	@echo "  secrets       - Scan git history and working tree with gitleaks"
+	@echo "  hooks         - Enable the versioned git hooks in .githooks/"
 	@echo "  check         - Run fmt, vet, lint, vulncheck, test-race"
 	@echo "  verify        - Alias for check"
 	@echo "  pre-commit    - Run fmt, lint, test-race (required before commit)"
@@ -120,6 +122,15 @@ vet:
 vulncheck: $(GOVULNCHECK)
 	@echo "Running govulncheck..."
 	$(GOVULNCHECK) ./...
+
+secrets:
+	@command -v gitleaks >/dev/null 2>&1 || { echo "error: gitleaks not found (go install github.com/zricethezav/gitleaks/v8@latest)"; exit 1; }
+	@echo "Running gitleaks..."
+	gitleaks git --log-opts="--all" --redact --no-banner .
+	gitleaks dir --redact --no-banner .
+
+hooks:
+	git config core.hooksPath .githooks
 
 # ============================================================================
 # COMBINED CHECKS
