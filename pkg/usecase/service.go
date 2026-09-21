@@ -822,7 +822,7 @@ func renameJournalEntries(result renamer.Result, rootDir string) []journal.Entry
 		}
 		if op.NewPath != "" && op.NewPath != op.OriginalPath {
 			entries = append(entries, journal.Entry{
-				Type:    "rename",
+				Type:    journalTypeRename,
 				Source:  relPath(rootDir, op.OriginalPath),
 				Dest:    relPath(rootDir, op.NewPath),
 				Success: true,
@@ -830,7 +830,7 @@ func renameJournalEntries(result renamer.Result, rootDir string) []journal.Entry
 		}
 		if op.Deleted && op.TrashedTo != "" {
 			entries = append(entries, journal.Entry{
-				Type:    "trash",
+				Type:    journalTypeTrash,
 				Source:  relPath(rootDir, op.OriginalPath),
 				Dest:    relPath(rootDir, op.TrashedTo),
 				Success: true,
@@ -849,7 +849,7 @@ func flattenJournalEntries(result flattener.Result, rootDir string) []journal.En
 		}
 		if op.Duplicate && op.TrashedTo != "" {
 			entries = append(entries, journal.Entry{
-				Type:    "trash",
+				Type:    journalTypeTrash,
 				Source:  relPath(rootDir, op.OriginalPath),
 				Dest:    relPath(rootDir, op.TrashedTo),
 				Hash:    op.Hash,
@@ -859,7 +859,7 @@ func flattenJournalEntries(result flattener.Result, rootDir string) []journal.En
 		}
 		if op.NewPath != "" && op.NewPath != op.OriginalPath {
 			entries = append(entries, journal.Entry{
-				Type:    "rename",
+				Type:    journalTypeRename,
 				Source:  relPath(rootDir, op.OriginalPath),
 				Dest:    relPath(rootDir, op.NewPath),
 				Success: true,
@@ -878,7 +878,7 @@ func duplicateJournalEntries(result deduplicator.Result, rootDir string) []journ
 		}
 		if op.TrashedTo != "" {
 			entries = append(entries, journal.Entry{
-				Type:    "trash",
+				Type:    journalTypeTrash,
 				Source:  relPath(rootDir, op.Path),
 				Dest:    relPath(rootDir, op.TrashedTo),
 				Hash:    op.Hash,
@@ -915,7 +915,7 @@ func unzipJournalEntries(result unzipper.Result, rootDir string) []journal.Entry
 		}
 		if op.DeletedArchive && op.TrashedTo != "" {
 			entries = append(entries, journal.Entry{
-				Type:    "trash",
+				Type:    journalTypeTrash,
 				Source:  relPath(rootDir, op.ArchivePath),
 				Dest:    relPath(rootDir, op.TrashedTo),
 				Success: true,
@@ -934,7 +934,7 @@ func organizeJournalEntries(result organizer.Result, rootDir string) []journal.E
 		}
 		if op.NewPath != "" && op.NewPath != op.OriginalPath {
 			entries = append(entries, journal.Entry{
-				Type:    "rename",
+				Type:    journalTypeRename,
 				Source:  relPath(rootDir, op.OriginalPath),
 				Dest:    relPath(rootDir, op.NewPath),
 				Success: true,
@@ -951,6 +951,12 @@ type UndoRequest struct {
 	DryRun     bool
 	OnProgress ProgressCallback
 }
+
+// Journal entry types written by workflows and dispatched on by undo.
+const (
+	journalTypeRename = "rename"
+	journalTypeTrash  = "trash"
+)
 
 // Undo action constants for UndoOperation.Action.
 const (
@@ -1071,11 +1077,11 @@ func undoEntry(target workflowTarget, entry journal.Entry, dryRun bool) UndoOper
 	}
 
 	switch entry.Type {
-	case "trash":
+	case journalTypeTrash:
 		return undoTrash(target, entry, dryRun)
 	case "replace":
 		return undoReplace(target, entry, dryRun)
-	case "rename":
+	case journalTypeRename:
 		return undoRename(target, entry, dryRun)
 	case "extract":
 		return UndoOperation{
