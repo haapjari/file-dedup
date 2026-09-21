@@ -3,7 +3,6 @@ package manifest
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -346,7 +345,7 @@ func TestManifestLoadReturnsNilOnParseError(t *testing.T) {
 	m, err := Load(path)
 	require.Error(t, err)
 	assert.Nil(t, m)
-	assert.False(t, errors.Is(err, os.ErrNotExist))
+	assert.NotErrorIs(t, err, os.ErrNotExist)
 }
 
 func TestManifest_UniqueHashes(t *testing.T) {

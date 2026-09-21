@@ -512,14 +512,14 @@ func TestUndoMoveDryRunMissingAndHashMismatch(t *testing.T) {
 		fromAbs, toAbs, undoActionRestore, "missing trash")
 	assert.Equal(t, undoActionRestore, dryRunOp.Action)
 	assert.Empty(t, dryRunOp.SkipReason)
-	assert.NoError(t, dryRunOp.Error)
+	require.NoError(t, dryRunOp.Error)
 	assert.FileExists(t, fromAbs)
 	assert.NoFileExists(t, toAbs)
 
 	liveOp := undoMove(target, journal.Entry{Type: "trash", Source: "nested/to.txt", Dest: "from.txt", Hash: hash}, false,
 		fromAbs, toAbs, undoActionRestore, "missing trash")
 	assert.Equal(t, undoActionRestore, liveOp.Action)
-	assert.NoError(t, liveOp.Error)
+	require.NoError(t, liveOp.Error)
 	assert.NoFileExists(t, fromAbs)
 	assert.FileExists(t, toAbs)
 }
@@ -740,7 +740,7 @@ func TestRunPurgeReportsListAndOperationErrors(t *testing.T) {
 
 		exec, err := New(Options{}).RunPurge(PurgeRequest{TargetDir: root, All: true})
 		require.NoError(t, err)
-		require.Len(t, exec.Operations, 0)
+		require.Empty(t, exec.Operations)
 		assert.Equal(t, 0, exec.ErrorCount)
 	})
 
@@ -1609,7 +1609,7 @@ func TestFailOnUnsafeOperation_RejectsPathContainmentErrors(t *testing.T) {
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unsafe path detected in rename command")
-	assert.True(t, errors.Is(err, safepath.ErrSymlinkEscape))
+	require.ErrorIs(t, err, safepath.ErrSymlinkEscape)
 
 	nonSafetyErr := errors.New("ordinary operation failure")
 	err = failOnUnsafeOperation([]string{"failed"}, "rename", func(path string) (string, error) {
@@ -2083,7 +2083,7 @@ func TestUndoReplace_DryRunDoesNotRestoreBackup(t *testing.T) {
 	}, true)
 
 	assert.Equal(t, undoActionRestore, op.Action)
-	assert.NoError(t, op.Error)
+	require.NoError(t, op.Error)
 	assert.FileExists(t, backupAbs)
 	assert.NoFileExists(t, sourceAbs)
 }

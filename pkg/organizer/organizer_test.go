@@ -57,7 +57,7 @@ func TestOrganizer_ConstructorsRejectInvalidInputs(t *testing.T) {
 	_, err := New(filepath.Join(t.TempDir(), "missing"), false)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to create path validator")
-	assert.ErrorIs(t, err, safepath.ErrInvalidRoot)
+	require.ErrorIs(t, err, safepath.ErrInvalidRoot)
 
 	_, err = NewWithValidator(nil, false)
 	require.Error(t, err)
@@ -86,7 +86,7 @@ func TestOrganizer_InvalidSourceCountsErrorAndProgress(t *testing.T) {
 	assert.Equal(t, 1, result.TotalFiles)
 	assert.Equal(t, 1, result.ErrorCount)
 	require.Len(t, result.Operations, 1)
-	assert.ErrorIs(t, result.Operations[0].Error, safepath.ErrPathEscape)
+	require.ErrorIs(t, result.Operations[0].Error, safepath.ErrPathEscape)
 	assert.Equal(t, []int{2}, progressCalls)
 }
 
@@ -384,7 +384,7 @@ func TestOrganizer_InvalidSourcePathFailsFast(t *testing.T) {
 	assert.Equal(t, []int{2}, gotProgress)
 	require.Len(t, result.Operations, 1)
 	assert.Equal(t, outsideFile, result.Operations[0].OriginalPath)
-	assert.ErrorContains(t, result.Operations[0].Error, "source path escapes root")
+	require.ErrorContains(t, result.Operations[0].Error, "source path escapes root")
 	assert.FileExists(t, safeFile)
 	assert.NoDirExists(t, filepath.Join(tmpDir, "txt"))
 }

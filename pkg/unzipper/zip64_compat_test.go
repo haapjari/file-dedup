@@ -4,7 +4,6 @@ import (
 	"archive/zip"
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"hash/crc32"
 	"io"
 	"os"
@@ -257,7 +256,9 @@ func TestReadZip64LocatorRecord_MalformedAndValidRecords(t *testing.T) {
 	binary.LittleEndian.PutUint32(validLocator[0:4], zip64EndOfCentralDirLocSignature)
 	binary.LittleEndian.PutUint32(validLocator[zip64LocatorDiskStartFieldOffset:zip64LocatorDiskStartFieldOffset+4], 2)
 	binary.LittleEndian.PutUint32(validLocator[zip64LocatorTotalDisksFieldOffset:zip64LocatorTotalDisksFieldOffset+4], 3)
-	payload := append(validLocator, missingLocator...)
+	payload := make([]byte, 0, len(validLocator)+len(missingLocator))
+	payload = append(payload, validLocator...)
+	payload = append(payload, missingLocator...)
 	record, found, err = readZip64LocatorRecord(bytes.NewReader(payload), int64(len(payload)))
 	require.NoError(t, err)
 	assert.True(t, found)
@@ -378,7 +379,7 @@ func TestOpenArchiveReaderErrors(t *testing.T) {
 
 	_, err := openArchiveReader(filepath.Join(root, "missing.zip"))
 	require.Error(t, err)
-	assert.False(t, errors.Is(err, zip.ErrFormat))
+	require.NotErrorIs(t, err, zip.ErrFormat)
 
 	corruptPath := filepath.Join(root, "corrupt.zip")
 	require.NoError(t, os.WriteFile(corruptPath, []byte("not a zip"), 0o644))

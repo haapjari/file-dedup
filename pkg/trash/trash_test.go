@@ -117,7 +117,7 @@ func TestTrash_RejectsOutsideSource(t *testing.T) {
 
 	err = trasher.Trash(outsidePath)
 	require.Error(t, err)
-	assert.ErrorIs(t, err, safepath.ErrPathEscape)
+	require.ErrorIs(t, err, safepath.ErrPathEscape)
 	assert.FileExists(t, outsidePath)
 }
 
@@ -182,7 +182,7 @@ func TestRestore_RejectsPathOutsideRunTrash(t *testing.T) {
 
 	err = trasher.Restore(otherTrashPath)
 	require.Error(t, err)
-	assert.ErrorIs(t, err, ErrNotInTrash)
+	require.ErrorIs(t, err, ErrNotInTrash)
 	assert.FileExists(t, otherTrashPath)
 }
 
@@ -207,7 +207,7 @@ func TestRestore_RejectsParentOfTrashRoot(t *testing.T) {
 
 	err = trasher.Restore(filepath.Dir(trasher.trashRoot))
 	require.Error(t, err)
-	assert.ErrorIs(t, err, ErrNotInTrash)
+	require.ErrorIs(t, err, ErrNotInTrash)
 	assert.DirExists(t, filepath.Join(root, ".file-dedup", "trash"))
 }
 
@@ -223,7 +223,7 @@ func TestRestore_RejectsEscapingTrashRelativePath(t *testing.T) {
 
 	err = trasher.Restore(escapePath)
 	require.Error(t, err)
-	assert.ErrorIs(t, err, ErrNotInTrash)
+	require.ErrorIs(t, err, ErrNotInTrash)
 	assert.FileExists(t, filepath.Join(root, ".file-dedup", "trash", "other", "file.txt"))
 }
 

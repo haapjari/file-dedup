@@ -807,15 +807,11 @@ func inspectArchiveWithValidator(file collector.FileInfo, validator *safepath.Va
 	return op, nil
 }
 
-// extractFile writes a single zip file entry to targetPath. It opens the
-// compressed entry for reading, creates the destination file, and copies the
-// content. The destination file receives the permission bits stored in the
-// archive entry. Extraction is limited to [maxDecompressedSize] bytes to
-// prevent decompression bombs.
-func extractFile(entry *zip.File, targetPath string) error {
-	return extractFileWithLimit(entry, targetPath, maxDecompressedSize)
-}
-
+// extractFileWithLimit writes a single zip file entry to targetPath. It opens
+// the compressed entry for reading, creates the destination file, and copies
+// the content. The destination file receives the permission bits stored in the
+// archive entry. Extraction is limited to maxSize bytes to prevent
+// decompression bombs.
 func extractFileWithLimit(entry *zip.File, targetPath string, maxSize int64) error {
 	rc, err := entry.Open()
 	if err != nil {

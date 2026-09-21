@@ -171,7 +171,7 @@ func TestValidateSymlink(t *testing.T) {
 		require.NoError(t, err)
 
 		linkPath := filepath.Join(subDir, "link_outside")
-		if err := os.Symlink("/etc/passwd", linkPath); err != nil {
+		if err = os.Symlink("/etc/passwd", linkPath); err != nil {
 			t.Skip("symlinks not supported")
 		}
 

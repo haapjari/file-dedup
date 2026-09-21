@@ -610,7 +610,7 @@ func TestRenamerResolveNameConflict_FirstUseRecordsHashAndPath(t *testing.T) {
 
 	assert.Equal(t, "2018-06-15_report.pdf", newName)
 	assert.False(t, handled)
-	assert.NoError(t, op.Error)
+	require.NoError(t, op.Error)
 	require.Contains(t, usageMap, "2018-06-15_report.pdf")
 	usage := usageMap["2018-06-15_report.pdf"]
 	assert.Equal(t, 1, usage.count)
@@ -674,14 +674,14 @@ func TestRenamerProcessFile_BranchesAndConflictMetadata(t *testing.T) {
 	dirNames := make(map[string]map[string]nameUsage)
 
 	firstOp := r.processFile(byName["Report.pdf"], dirNames)
-	assert.NoError(t, firstOp.Error)
+	require.NoError(t, firstOp.Error)
 	assert.False(t, firstOp.Skipped)
 	assert.False(t, firstOp.Deleted)
 	assert.Equal(t, "2018-06-15_report.pdf", firstOp.NewName)
 	assert.Equal(t, filepath.Join(tmpDir, "2018-06-15_report.pdf"), firstOp.NewPath)
 
 	duplicateOp := r.processFile(byName["report.pdf"], dirNames)
-	assert.NoError(t, duplicateOp.Error)
+	require.NoError(t, duplicateOp.Error)
 	assert.True(t, duplicateOp.Skipped)
 	assert.False(t, duplicateOp.Deleted)
 	assert.Equal(t, "duplicate file already exists", duplicateOp.SkipReason)
@@ -689,7 +689,7 @@ func TestRenamerProcessFile_BranchesAndConflictMetadata(t *testing.T) {
 	assert.Empty(t, duplicateOp.NewPath)
 
 	conflictOp := r.processFile(byName["REPORT.pdf"], dirNames)
-	assert.NoError(t, conflictOp.Error)
+	require.NoError(t, conflictOp.Error)
 	assert.False(t, conflictOp.Skipped)
 	assert.Equal(t, "2018-06-15_report_1.pdf", conflictOp.NewName)
 	assert.Equal(t, filepath.Join(tmpDir, "2018-06-15_report_1.pdf"), conflictOp.NewPath)
@@ -726,7 +726,7 @@ func TestRenamerExistingTargetBranches(t *testing.T) {
 		ModTime: sourceInfo.ModTime(),
 	}, targetInfo)
 
-	assert.NoError(t, op.Error)
+	require.NoError(t, op.Error)
 	assert.True(t, op.Skipped)
 	assert.False(t, op.Deleted)
 	assert.Equal(t, "target file already exists", op.SkipReason)
@@ -758,7 +758,7 @@ func TestRenamerExistingTargetDryRunDuplicateDoesNotDelete(t *testing.T) {
 		ModTime: sourceInfo.ModTime(),
 	}, targetInfo)
 
-	assert.NoError(t, op.Error)
+	require.NoError(t, op.Error)
 	assert.True(t, op.Skipped)
 	assert.False(t, op.Deleted)
 	assert.Equal(t, "duplicate file already exists", op.SkipReason)
