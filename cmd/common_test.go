@@ -145,7 +145,7 @@ func TestRunFileCommand_ReturnsExecuteError(t *testing.T) {
 		)
 	})
 
-	assert.ErrorIs(t, err, expectedErr)
+	require.ErrorIs(t, err, expectedErr)
 	assert.False(t, empty)
 	assert.Equal(t, "collecting files...\n", output)
 }

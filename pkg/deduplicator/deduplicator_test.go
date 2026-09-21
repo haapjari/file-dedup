@@ -136,7 +136,7 @@ func TestDeduplicator_FindDuplicates_IdenticalContent(t *testing.T) {
 	assert.False(t, op.Skipped)
 	assert.Empty(t, op.SkipReason)
 	assert.Empty(t, op.TrashedTo)
-	assert.NoError(t, op.Error)
+	require.NoError(t, op.Error)
 
 	// Both files should still exist (dry run).
 	_, err = os.Stat(filepath.Join(tmpDir, "original.txt"))
@@ -533,7 +533,7 @@ func TestDeduplicatorDeleteFile_DryRunAndErrorBranches(t *testing.T) {
 	assert.Equal(t, int64(4), dryRunOp.Size)
 	assert.Equal(t, hash, dryRunOp.Hash)
 	assert.Empty(t, dryRunOp.TrashedTo)
-	assert.NoError(t, dryRunOp.Error)
+	require.NoError(t, dryRunOp.Error)
 	assert.FileExists(t, dupePath)
 
 	liveDeduper, err := New(tmpDir, false)

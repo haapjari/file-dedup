@@ -58,7 +58,7 @@ func TestFlattener_FlattenFiles_Basic(t *testing.T) {
 	assert.False(t, result.Operations[0].Skipped)
 	assert.Empty(t, result.Operations[0].SkipReason)
 	assert.Empty(t, result.Operations[0].TrashedTo)
-	assert.NoError(t, result.Operations[0].Error)
+	require.NoError(t, result.Operations[0].Error)
 
 	// Verify file is now in root.
 	_, err = os.Stat(filepath.Join(tmpDir, "file.txt"))
@@ -75,7 +75,7 @@ func TestFlattener_ConstructorsRejectInvalidInputs(t *testing.T) {
 	_, err := New(filepath.Join(t.TempDir(), "missing"), false)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to create path validator")
-	assert.ErrorIs(t, err, safepath.ErrInvalidRoot)
+	require.ErrorIs(t, err, safepath.ErrInvalidRoot)
 
 	_, err = NewWithValidator(nil, false, 0, nil)
 	require.Error(t, err)
@@ -427,7 +427,7 @@ func TestFlattenerProcessFile_ErrorSkipConflictAndDuplicateBranches(t *testing.T
 		Dir:  tmpDir,
 		Name: "root.txt",
 	}, rootHash, seenHash, nameCount)
-	assert.NoError(t, rootOp.Error)
+	require.NoError(t, rootOp.Error)
 	assert.True(t, rootOp.Skipped)
 	assert.Equal(t, "already in root", rootOp.SkipReason)
 	assert.Equal(t, rootPath, rootOp.NewPath)
@@ -439,7 +439,7 @@ func TestFlattenerProcessFile_ErrorSkipConflictAndDuplicateBranches(t *testing.T
 		Dir:  filepath.Dir(duplicatePath),
 		Name: "root.txt",
 	}, rootHash, seenHash, nameCount)
-	assert.NoError(t, duplicateOp.Error)
+	require.NoError(t, duplicateOp.Error)
 	assert.True(t, duplicateOp.Duplicate)
 	assert.Equal(t, rootPath, duplicateOp.NewPath)
 
@@ -448,7 +448,7 @@ func TestFlattenerProcessFile_ErrorSkipConflictAndDuplicateBranches(t *testing.T
 		Dir:  filepath.Dir(nestedPath),
 		Name: "file.txt",
 	}, nestedHash, seenHash, nameCount)
-	assert.NoError(t, moveOp.Error)
+	require.NoError(t, moveOp.Error)
 	assert.False(t, moveOp.Skipped)
 	assert.False(t, moveOp.Duplicate)
 	assert.Equal(t, filepath.Join(tmpDir, "file.txt"), moveOp.NewPath)
@@ -458,7 +458,7 @@ func TestFlattenerProcessFile_ErrorSkipConflictAndDuplicateBranches(t *testing.T
 		Dir:  filepath.Dir(secondNestedPath),
 		Name: "file.txt",
 	}, secondNestedHash, seenHash, nameCount)
-	assert.NoError(t, conflictOp.Error)
+	require.NoError(t, conflictOp.Error)
 	assert.Equal(t, filepath.Join(tmpDir, "file_1.txt"), conflictOp.NewPath)
 }
 
@@ -506,7 +506,7 @@ func TestFlattenerHandleDuplicateDryRunAndDeleteErrorBranches(t *testing.T) {
 	dryRunOp = dryRunFlattener.handleDuplicate(&dryRunOp, dupePath, keptPath)
 	assert.True(t, dryRunOp.Duplicate)
 	assert.Equal(t, keptPath, dryRunOp.NewPath)
-	assert.NoError(t, dryRunOp.Error)
+	require.NoError(t, dryRunOp.Error)
 	assert.FileExists(t, dupePath)
 
 	liveFlattener, err := New(tmpDir, false)
